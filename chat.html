@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Chatルーム</title>
+</head>
+
+<body>
+    <h1>Chatルーム</h1>
+    <form id='form'>
+        <input id="user" placeholder="ユーザー名" />
+        <input id="chat" placeholder="メッセージを入力" />
+        <button>送信</button>
+    </form>
+    <ul id="messages"></ul>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        var socket = io();
+        var form = document.getElementById('form');
+        var user = document.getElementById('user');
+        var chat = document.getElementById('chat');
+        var messages = document.getElementById('messages');
+
+        form.addEventListener('submit', function (e) {
+            // websocketを使うのでフォームの送信をキャンセル
+            e.preventDefault();
+            obj = {
+                user: user.value,
+                text: chat.value,
+                room: window.location.pathname.replace('/', '')
+            };
+            // イベントを発火しデータを受け渡す
+            socket.emit('res', obj);
+
+            chat.value = '';
+        });
+
+        // サーバ側からchatイベントを待ち受ける
+        socket.on('init', function (msg) {
+            // 初回起動時に全てのメッセージを取得
+            for (let i = 0; i < msg.length; i++) {
+                var li = document.createElement('li');
+                li.setAttribute('id', msg[i].id)
+                li.textContent = msg[i].user + ' / ' + msg[i].text;
+                messages.appendChild(li);
+            }
+            // 全てのメッセージを取得後、接続を切る(これまでのメッセージを取得し終わるため。)
+            // https://teratail.com/questions/57569
+            socket.off('init');
+        });
+        socket.on('res', function (msg) {
+            var li = document.createElement('li');
+            li.setAttribute('id', msg.id)
+            li.textContent = msg.user + ' / ' + msg.text;
+            messages.appendChild(li);
+        });
+
+        socket.emit('init', 'start');
+    </script>
+</body>
+
+</html>
